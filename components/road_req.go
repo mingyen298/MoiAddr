@@ -1,7 +1,6 @@
 package moi
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -45,21 +44,14 @@ func (m *RoadRequest) init() {
 	m.refreshSession()
 }
 
-func (m *RoadRequest) prepare() {
+func (m *RoadRequest) prepare() *http.Request {
 	data := FormDataFormat{TownID: m.townID, TaskName: m.taskName, KW: m.kW}
-	m.bind(&data)
-
-	req, err := http.NewRequest("POST", m.path, bytes.NewReader([]byte(m.body)))
+	req, err := m.makeRequest(&data)
 	if err != nil {
 		log.Println(err.Error())
-		return
+		return nil
 	}
-
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Add("Cookie", m.session)
-	m.req = req
-	log.Printf("body:%s\n", m.body)
-	log.Printf("session:%s\n", m.session)
+	return req
 }
 
 func (m *RoadRequest) fillRoads(context *Context, key string, data []byte) {
@@ -67,8 +59,8 @@ func (m *RoadRequest) fillRoads(context *Context, key string, data []byte) {
 
 	for _, i := range temp {
 		c := m.roadExtractor.f2.FindStringSubmatch(i[0])
-		context.townAndRoad[key] = append(context.townAndRoad[key], c[1])
-
+		// context.townAndRoad[key] = append(context.townAndRoad[key], c[1])
+		context.townAndRoad.Append(key, c[1])
 	}
 
 }
@@ -78,14 +70,15 @@ func (m *RoadRequest) Run(context *Context) {
 	m.taskName = "ROADSEC"
 	m.kW = "0"
 
-	for town, _ := range context.townAndRoad {
+	for town, _ := range context.townAndRoad.All() {
 
 		m.townID = town
 		var data []byte = nil
 		var ok bool = false
+		var req *http.Request
 		for {
-			m.prepare()
-			data, ok = m.Do()
+			req = m.prepare()
+			data, ok = m.Do(req)
 			if !ok {
 				log.Println("road req error")
 			} else {
@@ -105,9 +98,10 @@ func (m *RoadRequest) TestReq(townID string) {
 	m.townID = townID
 	var data []byte = nil
 	var ok bool = false
+	var req *http.Request
 	for {
-		m.prepare()
-		data, ok = m.Do()
+		req = m.prepare()
+		data, ok = m.Do(req)
 		if !ok {
 			log.Println("road req error")
 		} else {

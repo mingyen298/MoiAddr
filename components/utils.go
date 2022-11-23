@@ -30,17 +30,3 @@ func encodeURIComponent(str string) string {
 	r = strings.Replace(r, "+", "%20", -1)
 	return r
 }
-
-// type FormDataFormat struct {
-// 	TownID        string
-// 	TaskName      string
-// 	KW            string
-// 	Road          string
-// 	NO            string
-// 	AddrSrchType  string
-// 	CompeleteAddr string
-// 	Start         string
-// 	Limit         string
-// LaneC string
-// LongC string
-// }

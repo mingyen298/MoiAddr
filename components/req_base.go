@@ -24,17 +24,10 @@ type FormDataFormat struct {
 	LongC         string
 }
 
-// type RequestFormatIF interface {
-// 	Init()
-// 	Bind()
-// }
-
 type RequestBase struct {
 	extractor *Extractor
 	path      string
 	body      string
-	req       *http.Request
-	header    http.Header
 	session   string
 }
 
@@ -55,8 +48,31 @@ func (m *RequestBase) bind(s *FormDataFormat) {
 	fmt.Println(m.body)
 }
 
-func (m *RequestBase) Do() ([]byte, bool) {
-	res, _ := http.DefaultClient.Do(m.req)
+func (m *RequestBase) makeRequest(s *FormDataFormat) (*http.Request, error) {
+	m.bind(s)
+	req, err := http.NewRequest("POST", m.path, bytes.NewReader([]byte(m.body)))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	req.Header.Add("Cookie", m.session)
+	req.Header.Add("Origin", "https://addressrs.moi.gov.tw")
+	req.Header.Add("Host", "addressrs.moi.gov.tw")
+	req.Header.Add("X-Requested-With", "XMLHttpRequest")
+	req.Header.Add("Accept-Language", "zh-TW,zh-Hant;q=0.9")
+	// req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Add("User-Agent", ":	Mozilla/5.0 (iPhone; CPU iPhone OS 15_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/107.0.5304.101 Mobile/15E148 Safari/604.1")
+	req.Header.Add("Referer", "https://addressrs.moi.gov.tw/address/index.cfm?city_id=10014")
+
+	log.Printf("body:%s\n", m.body)
+	log.Printf("session:%s\n", m.session)
+	return req, nil
+}
+
+func (m *RequestBase) Do(req *http.Request) ([]byte, bool) {
+	res, _ := http.DefaultClient.Do(req)
 	if res.StatusCode > 200 {
 		return nil, false
 	}
@@ -73,26 +89,6 @@ func (m *RequestBase) Do() ([]byte, bool) {
 
 	return washed, true
 }
-
-// func (m *RequestBase) Do2() ([]byte, bool) {
-// 	res, _ := http.DefaultClient.Do(m.req)
-// 	if res.StatusCode > 200 {
-// 		return nil, false
-// 	}
-// 	for _, val := range res.Cookies() {
-// 		if val.Name == `JSESSIONID` {
-// 			m.session = val.Name + `=` + val.Value
-// 			break
-// 		}
-// 	}
-// 	defer res.Body.Close()
-// 	content, _ := io.ReadAll(res.Body)
-
-// 	washed := m.extractor.GetJson(content)
-
-// 	return washed, true
-
-// }
 
 func (m *RequestBase) refreshSession() {
 	req, err := http.NewRequest("GET", "https://addressrs.moi.gov.tw/address/index.cfm?city_id=10014", bytes.NewReader([]byte("")))

@@ -1,7 +1,6 @@
 package moi
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -40,21 +39,14 @@ func (m *LaneCRequest) init() {
 	m.refreshSession()
 }
 
-func (m *LaneCRequest) prepare() {
+func (m *LaneCRequest) prepare() *http.Request {
 	data := FormDataFormat{TownID: m.townID, TaskName: m.taskName, Road: m.road}
-	m.bind(&data)
-
-	req, err := http.NewRequest("POST", m.path, bytes.NewReader([]byte(m.body)))
+	req, err := m.makeRequest(&data)
 	if err != nil {
 		log.Println(err.Error())
-		return
+		return nil
 	}
-
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Add("Cookie", m.session)
-	m.req = req
-	log.Printf("body:%s\n", m.body)
-	log.Printf("session:%s\n", m.session)
+	return req
 }
 
 func (m *LaneCRequest) fillLanes(context *Context, key string, data []byte) {
@@ -68,13 +60,15 @@ func (m *LaneCRequest) fillLanes(context *Context, key string, data []byte) {
 			c := m.laneCExtractor.f2.FindStringSubmatch(v[0])
 
 			if len(c) > 0 {
-				context.laneCMap[key] = append(context.laneCMap[key], string(c[1]))
+				context.laneCMap.Append(key, string(c[1]))
+				// context.laneCMap[key] = append(context.laneCMap[key], string(c[1]))
 				// fmt.Println(string(c[1]))
 			}
 
 		}
 	} else {
-		context.laneCMap[key] = append(context.laneCMap[key], "無")
+		// context.laneCMap[key] = append(context.laneCMap[key], "無")
+		context.laneCMap.Append(key, "無")
 	}
 
 }
@@ -84,7 +78,8 @@ func (m *LaneCRequest) Run(context *Context) {
 	m.taskName = "LANE_C"
 	var data []byte
 	var ok bool = false
-	for town, roads := range context.townAndRoad {
+	var req *http.Request
+	for town, roads := range context.townAndRoad.All() {
 
 		for _, road := range roads {
 			ok = false
@@ -93,8 +88,8 @@ func (m *LaneCRequest) Run(context *Context) {
 			m.road = encodeURIComponent(road)
 
 			for {
-				m.prepare()
-				data, ok = m.Do()
+				req = m.prepare()
+				data, ok = m.Do(req)
 				if !ok {
 					log.Println("laneC req error")
 				} else {
@@ -114,8 +109,8 @@ func (m *LaneCRequest) TestReq(townID string, road string) {
 	m.taskName = "LANE_C"
 	m.townID = townID
 	m.road = encodeURIComponent(road)
-	m.prepare()
-	data, ok := m.Do()
+	req := m.prepare()
+	data, ok := m.Do(req)
 	if !ok {
 		log.Println("laneC req error")
 		return

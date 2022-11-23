@@ -10,7 +10,7 @@ func TestSearch() {
 	a := moi.ResultRequest{}
 
 	// a.Run2("110", "■麻溝", "無", "無", "1000")
-	a.Run2("010", "更生北路", "不限", "無", "1000")
+	a.TestReq("010", "更生北路", "不限", "無", "1000")
 	// a.Run2("010", "上海街", "不限", "無")
 	// a.Run2("010", `%E4%B8%8A%E6%B5%B7%E8%A1%97`, `%E4%B8%8D%E9%99%90`, `%E7%84%A1`)
 
@@ -28,7 +28,7 @@ func TestLane() {
 	a := moi.LaneCRequest{}
 	// a.Run2("110", "■麻溝")
 	// a.Run2("010", "上海街")
-	a.Run2("150", "台坂村８鄰啦里吧")
+	a.TestReq("150", "台坂村８鄰啦里吧")
 	// a.Run2("010", `%E4%B8%8A%E6%B5%B7%E8%A1%97`, `%E4%B8%8D%E9%99%90`, `%E7%84%A1`)
 
 	// a.Run(context)
@@ -45,7 +45,7 @@ func TestLong() {
 	a := moi.LongCRequest{}
 	// a.Run2("110", "■麻溝")
 	// a.Run2("010", "上海街", "不限")
-	a.Run2("150", "台坂村８鄰啦里吧", "無")
+	a.TestReq("150", "台坂村８鄰啦里吧", "無")
 	// a.Run2("010", `%E4%B8%8A%E6%B5%B7%E8%A1%97`, `%E4%B8%8D%E9%99%90`, `%E7%84%A1`)
 
 	// a.Run(context)
@@ -95,6 +95,16 @@ func TestAll() {
 	context.SaveLaneCMap()
 }
 
+func TestCrossValidation() {
+	moi.FormDataMapInit()
+
+	resultReq := moi.ResultRequest{}
+	// resultReq.Run()
+	resultReq.CrossValidation()
+	// resultReq.OutputFile()
+	// context.Print2()
+}
+
 func main() {
 
 	// a.Prepare()
@@ -121,5 +131,6 @@ func main() {
 	// TestLong()
 	// TestLong()
 	// TestAll()
-	TestResult()
+	// TestResult()
+	TestCrossValidation()
 }

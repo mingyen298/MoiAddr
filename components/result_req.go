@@ -1,7 +1,6 @@
 package moi
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -77,7 +76,7 @@ func (m *ResultRequest) init() {
 	m.refreshSession()
 }
 
-func (m *ResultRequest) prepare() {
+func (m *ResultRequest) prepare() *http.Request {
 	// data := FormDataFormat{TownID: m.townID, TaskName: m.taskName, Road: m.road}
 	data := FormDataFormat{}
 	data.TaskName = m.taskName
@@ -91,26 +90,12 @@ func (m *ResultRequest) prepare() {
 	data.Start = m.start
 	data.Limit = m.limit
 
-	m.bind(&data)
-
-	req, err := http.NewRequest("POST", m.path, bytes.NewReader([]byte(m.body)))
+	req, err := m.makeRequest(&data)
 	if err != nil {
 		log.Println(err.Error())
-		return
+		return nil
 	}
-
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Add("Cookie", m.session)
-	req.Header.Add("Origin", "https://addressrs.moi.gov.tw")
-	req.Header.Add("Host", "addressrs.moi.gov.tw")
-	req.Header.Add("X-Requested-With", "XMLHttpRequest")
-	req.Header.Add("Accept-Language", "zh-TW,zh-Hant;q=0.9")
-	// req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Add("User-Agent", ":	Mozilla/5.0 (iPhone; CPU iPhone OS 15_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/107.0.5304.101 Mobile/15E148 Safari/604.1")
-	req.Header.Add("Referer", "https://addressrs.moi.gov.tw/address/index.cfm?city_id=10014")
-	m.req = req
-	log.Printf("body:%s\n", m.body)
-	log.Printf("session:%s\n", m.session)
+	return req
 }
 
 func (m *ResultRequest) CrossValidation() {
@@ -134,6 +119,7 @@ func (m *ResultRequest) Run() {
 	m.addrSrchType = "2"
 	var data []byte
 	var ok bool = false
+	var req *http.Request
 	var tempList []string = make([]string, 0)
 	for town, roads := range m.townAndRoadMap {
 
@@ -150,8 +136,8 @@ func (m *ResultRequest) Run() {
 			m.longC = encodeURIComponent(m.laneAndLongMap[encodeURIComponent(town+road)][1])
 
 			for {
-				m.prepare()
-				data, ok = m.Do()
+				req = m.prepare()
+				data, ok = m.Do(req)
 				if !ok {
 					log.Println("result req error")
 				} else {
@@ -213,9 +199,10 @@ func (m *ResultRequest) TestReq(townID string, road string, lane string, long st
 	m.longC = encodeURIComponent(long)
 	var data []byte = nil
 	var ok bool = false
+	var req *http.Request
 	for {
-		m.prepare()
-		data, ok = m.Do()
+		req = m.prepare()
+		data, ok = m.Do(req)
 		if !ok {
 			log.Println("laneC req error")
 		} else {
